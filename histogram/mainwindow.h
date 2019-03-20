@@ -23,9 +23,14 @@ public:
 
     double OTSUBetweenClassVariance(int th);
     double EntropyConpute(int th);
+
+    void initWindow();
+
 public slots:
     //void sliderChanged(int raw_width,int raw_height,QLabel* label);
     void sliderChanged();
+    void openFileDialog();
+
 private:
     Ui::MainWindow *ui;
     QImage* img;
@@ -37,7 +42,13 @@ private:
     int raw_width;
     int raw_height;
 
-    QLabel* slideLabel;
+    QLabel* label1;
+    QLabel* label2;
+    QString filename;
+
+
+
+    QCustomPlot *plot;
 };
 
 #endif // MAINWINDOW_H

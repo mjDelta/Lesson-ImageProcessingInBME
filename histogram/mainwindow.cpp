@@ -11,9 +11,20 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     setFixedSize(1500,1300);
+//    // 创建新的动作
+//    QAction *openAction = new QAction(tr("&Open"), this);
+//    // 添加图标
+//    QIcon icon(":/myImages/images/fileopen.png");
+//    openAction->setIcon(icon);
+//    // 设置快捷键
+//    openAction->setShortcut(QKeySequence(tr("Ctrl+O")));
+//    // 在文件菜单中设置新的打开动作
+
+//    ui->menu_F->addAction(openAction);
 
     img=new QImage;
-    QString filename("..\\imgs\\monkey.bmp");
+    //QString filename("..\\imgs\\monkey.bmp");
+    filename="..\\imgs\\monkey.bmp";
     if(!(img->load(filename))){
         delete img;
         return;
@@ -21,7 +32,7 @@ MainWindow::MainWindow(QWidget *parent) :
     int margin=20;
 
     /*** Show Raw Image ***/
-    int raw_x=80;int raw_y=80;raw_width=450;raw_height=450;
+    int raw_x=100;int raw_y=100;raw_width=450;raw_height=450;
     ui->rawImg->setGeometry(raw_x,raw_y,raw_width,raw_height);
     ui->rawImgInfo->setGeometry(raw_x,raw_y+raw_height,raw_width,100);
 
@@ -30,7 +41,7 @@ MainWindow::MainWindow(QWidget *parent) :
     /*** Plot histogram ***/
     int hist_x=raw_x+raw_width+margin;int hist_y=raw_y;int hist_width=450;int hist_height=450;
     ui->widget->setGeometry(hist_x,hist_y,hist_width,hist_height);
-    QCustomPlot* plot=ui->widget;
+    plot=ui->widget;
     Imhist(plot,img);
     ui->histInfo->setGeometry(hist_x,hist_y+hist_height,hist_width,100);
     ui->histInfo->setText("Histogram");
@@ -38,18 +49,17 @@ MainWindow::MainWindow(QWidget *parent) :
     /*** thresholding one ***/
     int th1_x=raw_x;int th1_y=raw_y+raw_height+10+100+margin;int th1_width=450;int th1_height=450;
     ui->thImg1->setGeometry(th1_x,th1_y,th1_width,th1_height);
-    QLabel* label1=ui->thImg1;
+    label1=ui->thImg1;
     int th1=OTSUThresholding();
     ui->th1ImgInfo->setGeometry(th1_x,th1_y+th1_height,th1_width,100);
     ui->th1ImgInfo->setText("OTSU thresholding: "+QString::number(th1));
     randomThresholding(img,label1,th1);
 
-    slideLabel=label1;
 
     /*** thresholding two ***/
     int th2_x=raw_x+raw_width+margin;int th2_y=raw_y+raw_height+10+100+margin;int th2_width=450;int th2_height=450;
     ui->thImg2->setGeometry(th2_x,th2_y,th2_width,th2_height);
-    QLabel* label2=ui->thImg2;
+    label2=ui->thImg2;
     int th2=EntropyThresholding();
     ui->th2ImgInfo->setGeometry(th2_x,th2_y+th2_height,th2_width,100);
     ui->th2ImgInfo->setText("Entropy thresholding: "+QString::number(th2));
@@ -60,31 +70,74 @@ MainWindow::MainWindow(QWidget *parent) :
     slider->setMinimum(0);
     slider->setMaximum(255);
     slider->setValue(th1);
-    ui->sliderInfo->setText("Slide thresholding: "+QString::number(th1));
-    //connect(slider,SIGNAL(valueChanged(int)),this,SLOT(sliderChanged(int,int,QLabel*)));
+    ui->sliderMin->setText("Min: 0");
+    ui->sliderMax->setText("Max: 255");
     connect(slider,SIGNAL(valueChanged(int)),this,SLOT(sliderChanged()));
-    int slide_x=raw_x+2*raw_width+2*margin;int slide_y=raw_y;int slide_width=300;int slide_height=10;
+    int slide_x=raw_x;int slide_y=raw_y+2*raw_height+10+200+margin;int slide_width=raw_width;int slide_height=10;
+    //int th1_x=raw_x;int th1_y=raw_y+raw_height+10+100+margin;int th1_width=450;int th1_height=450;
+
     slider->setGeometry(slide_x,slide_y,slide_width,slide_height);
-    ui->sliderInfo->setGeometry(slide_x,slide_y+margin,300,50);
+    ui->sliderMin->setGeometry(slide_x,slide_y+10,100,20);
+    ui->sliderMax->setGeometry(slide_x+slide_width-80,slide_y+10,100,20);
+
+    /*** file uploader ***/
+    QPushButton* btn=ui->chooseFile;
+    btn->setGeometry(margin,margin,100,20);
+    connect(btn,SIGNAL(clicked()),this,SLOT(openFileDialog()));
+    //connect(ui->actionOpen_O,SIGNAL(actionOpen_O()),this,SLOT(openFileDialog()));
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
 }
-//void MainWindow::sliderChanged(int raw_width,int raw_height,QLabel* label){
-//    int pos=ui->thSlider->value();
-//    QString str=QString::number(pos);
-//    ui->sliderInfo->setText("Slide thresholding: "+str);
-//    ui->th1ImgInfo->setText("OTSU thresholding: "+QString::number(pos));
-//    randomThresholding(img,raw_width,raw_height,label,pos);
-//}
+void MainWindow::openFileDialog(){
+    //定义文件对话框类
+    QFileDialog *fileDialog = new QFileDialog(this);
+    //定义文件对话框标题
+    fileDialog->setWindowTitle(tr("Open Image"));
+    //设置默认文件路径
+    fileDialog->setDirectory(".");
+    //设置文件过滤器
+    fileDialog->setNameFilter(tr("Images(*.png *.jpg *.jpeg *.bmp)"));
+    //设置可以选择多个文件,默认为只能选择一个文件QFileDialog::ExistingFiles
+    fileDialog->setFileMode(QFileDialog::ExistingFiles);
+    //设置视图模式
+    fileDialog->setViewMode(QFileDialog::Detail);
+    //打印所有选择的文件的路径
+    QStringList fileNames;
+    if(fileDialog->exec())
+    {
+        fileNames = fileDialog->selectedFiles();
+    }
+    for(auto tmp:fileNames){
+
+        qDebug()<<tmp<<endl;
+        filename=tmp;
+        if(!(img->load(filename))){
+            delete img;
+            return;
+        }
+        showRawImg(img);
+        Imhist(plot,img);
+        int th1=OTSUThresholding();
+        randomThresholding(img,label1,th1);
+        ui->th1ImgInfo->setText("OTSU thresholding: "+QString::number(th1));
+
+        int th2=EntropyThresholding();
+        randomThresholding(img,label2,th2);
+        ui->th2ImgInfo->setText("Entropy thresholding: "+QString::number(th2));
+
+    }
+
+
+}
 void MainWindow::sliderChanged(){
         int pos=ui->thSlider->value();
         QString str=QString::number(pos);
-        ui->sliderInfo->setText("Slide thresholding: "+str);
+        //ui->sliderInfo->setText("Slide thresholding: "+str);
         ui->th1ImgInfo->setText("Slide thresholding: "+QString::number(pos));
-        randomThresholding(img,slideLabel,pos);
+        randomThresholding(img,label1,pos);
 }
 int MainWindow::EntropyThresholding(){
     int best_th=-1;
@@ -259,9 +312,12 @@ void MainWindow::Imhist(QCustomPlot * plot, QImage *img)
     plot->xAxis->setRange(0,256);  //x轴范围
     plot->yAxis->setRange(0,(int)yrange);  //y轴范围
     QCPBars *bars = new QCPBars(plot->xAxis, plot->yAxis);
+    //bars->moveAbove();
+
     bars->setData(datax, hist);
     bars->setPen(QColor(0, 0, 0));
     bars->setWidth(0.05);
+
     plot->setVisible(true);
     plot->replot();
 
