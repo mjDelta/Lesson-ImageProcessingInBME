@@ -30,7 +30,7 @@
    <widget class="QCustomPlot" name="widget" native="true">
     <property name="geometry">
      <rect>
-      <x>79</x>
+      <x>80</x>
       <y>170</y>
       <width>291</width>
       <height>91</height>
@@ -165,6 +165,58 @@
     </property>
     <property name="text">
      <string>chooseFile</string>
+    </property>
+   </widget>
+   <widget class="Line" name="hline">
+    <property name="geometry">
+     <rect>
+      <x>50</x>
+      <y>30</y>
+      <width>118</width>
+      <height>3</height>
+     </rect>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
+    </property>
+   </widget>
+   <widget class="Line" name="vline">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>200</y>
+      <width>3</width>
+      <height>61</height>
+     </rect>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Vertical</enum>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="project1_btn">
+    <property name="geometry">
+     <rect>
+      <x>140</x>
+      <y>280</y>
+      <width>80</width>
+      <height>15</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Project 1</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="project2_btn">
+    <property name="geometry">
+     <rect>
+      <x>230</x>
+      <y>280</y>
+      <width>80</width>
+      <height>15</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Project 2</string>
     </property>
    </widget>
   </widget>

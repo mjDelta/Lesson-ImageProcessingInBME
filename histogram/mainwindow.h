@@ -30,6 +30,8 @@ public slots:
     //void sliderChanged(int raw_width,int raw_height,QLabel* label);
     void sliderChanged();
     void openFileDialog();
+    void swtichProject1();
+    void switchProject2();
 
 private:
     Ui::MainWindow *ui;
@@ -41,6 +43,12 @@ private:
 
     int raw_width;
     int raw_height;
+    int window_width;
+    int window_height;
+    int raw_x;int raw_y;
+    int project_btn_width;
+    int project_btn_height;
+    int margin;
 
     QLabel* label1;
     QLabel* label2;

@@ -10,29 +10,44 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    setFixedSize(1500,1300);
-//    // 创建新的动作
-//    QAction *openAction = new QAction(tr("&Open"), this);
-//    // 添加图标
-//    QIcon icon(":/myImages/images/fileopen.png");
-//    openAction->setIcon(icon);
-//    // 设置快捷键
-//    openAction->setShortcut(QKeySequence(tr("Ctrl+O")));
-//    // 在文件菜单中设置新的打开动作
+    window_width=1500;window_height=1300;
+    setFixedSize(window_width,window_height);
+    raw_x=200;raw_y=100;raw_width=450;raw_height=450;
+    project_btn_width=150;
+    project_btn_height=50;
+    margin=20;
 
-//    ui->menu_F->addAction(openAction);
+    /*** hline,vline ***/
+    ui->vline->setGeometry(raw_x-margin,raw_y-margin,3,window_height);
+    ui->hline->setGeometry(0,raw_y-margin,window_width-raw_x,3);
 
+    /*** project switch button ***/
+    QPushButton* switchProject1Btn=ui->project1_btn;
+    switchProject1Btn->setGeometry(margin,margin,project_btn_width,project_btn_height);
+    connect(switchProject1Btn,SIGNAL(clicked()),this,SLOT(swtichProject1()));
+
+    QPushButton* switchProject2Btn=ui->project2_btn;
+    switchProject2Btn->setGeometry(2*margin+project_btn_width,margin,project_btn_width,project_btn_height);
+    connect(switchProject2Btn,SIGNAL(clicked()),this,SLOT(switchProject2()));
+
+    /*** assign project 1 as the default project ***/
+    swtichProject1();
+
+}
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+}
+void MainWindow::swtichProject1(){
     img=new QImage;
-    //QString filename("..\\imgs\\monkey.bmp");
     filename="..\\imgs\\monkey.bmp";
     if(!(img->load(filename))){
         delete img;
         return;
     }
-    int margin=20;
 
     /*** Show Raw Image ***/
-    int raw_x=100;int raw_y=100;raw_width=450;raw_height=450;
     ui->rawImg->setGeometry(raw_x,raw_y,raw_width,raw_height);
     ui->rawImgInfo->setGeometry(raw_x,raw_y+raw_height,raw_width,100);
 
@@ -82,14 +97,13 @@ MainWindow::MainWindow(QWidget *parent) :
 
     /*** file uploader ***/
     QPushButton* btn=ui->chooseFile;
-    btn->setGeometry(margin,margin,100,20);
+    btn->setGeometry(margin,margin+200,150,20);
     connect(btn,SIGNAL(clicked()),this,SLOT(openFileDialog()));
-    //connect(ui->actionOpen_O,SIGNAL(actionOpen_O()),this,SLOT(openFileDialog()));
-}
 
-MainWindow::~MainWindow()
-{
-    delete ui;
+
+}
+void MainWindow::switchProject2(){
+
 }
 void MainWindow::openFileDialog(){
     //定义文件对话框类
