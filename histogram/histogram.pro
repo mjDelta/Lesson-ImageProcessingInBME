@@ -33,7 +33,8 @@ HEADERS += \
     qcustomplot.h
 
 FORMS += \
-        mainwindow.ui
+        mainwindow.ui \
+    project2.ui
 
 RESOURCES += \
     image_resources.qrc
