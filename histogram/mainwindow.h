@@ -54,6 +54,16 @@ public:
 
     int getMedianValue(int *a);
     void copyImage(QImage* img1,QImage* img2);
+
+    void standardEdge(QImage* outImage);
+    void internalEdge(QImage* outImage);
+    void externalEdge(QImage* outImage);
+
+    void conditionalDilation(QImage* outImage);
+    bool judgeTwoImgsTheSame(QImage* img1,QImage* img2);
+    void unionTwoImgs(QImage* img1,QImage* img2);
+    void reconstructionOpening(QImage* outImage1,QImage* outImage2);
+    void reconstructionClosing(QImage* outImage1,QImage* outImage2);
 public slots:
     //void sliderChanged(int raw_width,int raw_height,QLabel* label);
     void sliderChanged();
@@ -75,8 +85,10 @@ public slots:
     void processOpeningAndClosing();
     void processDistanceTransform();
     void processSkeleton();
+    void processEdgeDetetion();
 
-
+    void processConditionalDilation();
+    void processReconstruction();
 
 private:
     Ui::MainWindow *ui;
@@ -121,8 +133,11 @@ private:
     QLineEdit *seHeightEdit;
     QLineEdit *seRadiusEdit;
 
-    QPushButton *distanceTransform;
-    QPushButton *skeleton;
+    QPushButton *distanceTransformBtn;
+    QPushButton *skeletonBtn;
+    QPushButton *edgeDetectionBtn;
+    QPushButton *conditionDilationBtn;
+    QPushButton *reconstructionBtn;
 
     int seWidth;
     int seHeight;

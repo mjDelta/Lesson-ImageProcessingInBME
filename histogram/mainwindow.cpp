@@ -111,29 +111,309 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(openAndCloseOperator,SIGNAL(clicked()),this,SLOT(processOpeningAndClosing()));
 
     /*** morphology operators: distance transform, skeleton and skeleton restoration***/
-    distanceTransform=new QPushButton("Distance Transform",this);
-    distanceTransform->setText("Distance\nTransform");
-    distanceTransform->setGeometry(margin,margin+100*5,150,60);
-    connect(distanceTransform,SIGNAL(clicked()),this,SLOT(processDistanceTransform()));
+    distanceTransformBtn=new QPushButton("Distance Transform",this);
+    distanceTransformBtn->setText("Distance\nTransform");
+    distanceTransformBtn->setGeometry(margin,margin+100*5,150,60);
+    connect(distanceTransformBtn,SIGNAL(clicked()),this,SLOT(processDistanceTransform()));
 
-    skeleton=new QPushButton("Skeleton",this);
-    skeleton->setText("Skeleton and\nRestoration");
-    skeleton->setGeometry(margin,margin+100*6,150,60);
-    connect(skeleton,SIGNAL(clicked()),this,SLOT(processSkeleton()));
+    skeletonBtn=new QPushButton("Skeleton",this);
+    skeletonBtn->setText("Skeleton and\nRestoration");
+    skeletonBtn->setGeometry(margin,margin+100*6,150,60);
+    connect(skeletonBtn,SIGNAL(clicked()),this,SLOT(processSkeleton()));
 
+    edgeDetectionBtn=new QPushButton("Edge Detection",this);
+    edgeDetectionBtn->setText("Edge detection\ngradient");
+    edgeDetectionBtn->setGeometry(margin,margin+100*7,150,60);
+    connect(edgeDetectionBtn,SIGNAL(clicked()),this,SLOT(processEdgeDetetion()));
 
+    conditionDilationBtn=new QPushButton("Conditional dilation",this);
+    conditionDilationBtn->setText("Conditional\ndilation");
+    conditionDilationBtn->setGeometry(margin,margin+100*8,150,60);
+    connect(conditionDilationBtn,SIGNAL(clicked()),this,SLOT(processConditionalDilation()));
+
+    reconstructionBtn=new QPushButton("Reconstruction",this);
+    reconstructionBtn->setText("Reconstruction");
+    reconstructionBtn->setGeometry(margin,margin+100*9,150,30);
+    connect(reconstructionBtn,SIGNAL(clicked()),this,SLOT(processReconstruction()));
     /*** assign project 1 as the default project ***/
     label1=ui->thImg1;
     label2=ui->thImg2;
     label3=ui->thImg3;
     switchProject1();
-
-
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+void MainWindow::processReconstruction(){
+    seHeight=seHeightEdit->text().toInt();
+    seWidth=seWidthEdit->text().toInt();
+    seRadius=seRadiusEdit->text().toInt();
+    if(seHeight==0 && seWidth==0 && seRadius==0){
+        seHeight=3;seWidth=3;seRadius=0;
+    }
+    if(seHeight<=3)seHeight=3;
+    if(seWidth<=3)seWidth=3;
+
+    QImage* openingImg=new QImage(img->width(),img->height(),QImage::Format_RGB32);
+    QImage* obrImg=new QImage(img->width(),img->height(),QImage::Format_RGB32);
+    reconstructionOpening(openingImg,obrImg);
+
+    QImage* closingImg=new QImage(img->width(),img->height(),QImage::Format_RGB32);
+    QImage* cbrImg=new QImage(img->width(),img->height(),QImage::Format_RGB32);
+    reconstructionClosing(closingImg,cbrImg);
+
+    QImage* displayOutImg=new QImage;
+    *displayOutImg=obrImg->scaled(raw_width,raw_height,Qt::KeepAspectRatio);
+    int hist_x=raw_x+raw_width+margin;int hist_y=raw_y;int hist_width=450;int hist_height=450;
+    ui->histInfo->setGeometry(hist_x,hist_y+hist_height,hist_width,100);
+    ui->histInfo->setText("Opening by reconstruction");
+    label1->setPixmap(QPixmap::fromImage(*displayOutImg));
+    label1->setGeometry(hist_x,hist_y,hist_width,hist_height);
+
+    QImage* displayOutImg2=new QImage;
+    *displayOutImg2=cbrImg->scaled(raw_width,raw_height,Qt::KeepAspectRatio);
+    int th1_x=raw_x;int th1_y=raw_y+raw_height+10+100+margin;int th1_width=450;int th1_height=450;
+    ui->th1ImgInfo->setGeometry(th1_x,th1_y+th1_height,th1_width,100);
+    ui->th1ImgInfo->setText("Closing by reconstruction");
+    label2->setPixmap(QPixmap::fromImage(*displayOutImg2));
+    label2->setGeometry(th1_x,th1_y,th1_width,th1_height);
+
+    ui->th1ImgInfo->setVisible(true);
+    label2->setVisible(true);
+    ui->th2ImgInfo->setVisible(false);
+    label3->setVisible(false);
+    ui->histInfo->setVisible(true);
+    label1->setVisible(true);
+}
+
+void MainWindow::reconstructionOpening(QImage *outImage1,QImage* outImage2){
+    QImage *tmp=new QImage(img->width(),img->height(),QImage::Format_RGB32);
+    //opeinging
+    if(seRadius!=0){
+        erosionDisk(img,tmp);
+        dilationDisk(tmp,outImage1);
+    }else{
+        ersion(img,tmp);
+        dilation(tmp,outImage1);
+    }
+    //conditional dilation
+
+    copyImage(outImage1,outImage2);
+    tmp=new QImage(img->width(),img->height(),QImage::Format_RGB32);
+    int cnter=0;
+    while(!judgeTwoImgsTheSame(tmp,outImage2)){
+        if (cnter!=0){
+            copyImage(tmp,outImage2);
+        }
+        dilation(outImage2,tmp);
+        unionTwoImgs(outImage1,tmp);
+        cnter+=1;
+    }
+}
+void MainWindow::reconstructionClosing(QImage *outImage1,QImage* outImage2){
+    QImage *tmp=new QImage(img->width(),img->height(),QImage::Format_RGB32);
+    //closing
+    if(seRadius!=0){
+        dilationDisk(img,tmp);
+        erosionDisk(tmp,outImage1);
+    }else{
+        dilation(img,tmp);
+        ersion(tmp,outImage1);
+    }
+    //conditional dilation
+    copyImage(outImage1,outImage2);
+    tmp=new QImage(img->width(),img->height(),QImage::Format_RGB32);
+    int cnter=0;
+    while(!judgeTwoImgsTheSame(tmp,outImage2)){
+        if (cnter!=0){
+            copyImage(tmp,outImage2);
+        }
+        dilation(outImage2,tmp);
+        unionTwoImgs(outImage1,tmp);
+        cnter+=1;
+    }
+}
+void MainWindow::processConditionalDilation(){
+    seHeight=seHeightEdit->text().toInt();
+    seWidth=seWidthEdit->text().toInt();
+    seRadius=seRadiusEdit->text().toInt();
+    if(seHeight==0 && seWidth==0 && seRadius==0){
+        seHeight=3;seWidth=3;seRadius=0;
+    }
+    if(seHeight<=3)seHeight=3;
+    if(seWidth<=3)seWidth=3;
+    QImage* conditionDilation=new QImage(img->width(),img->height(),QImage::Format_RGB32);
+    conditionalDilation(conditionDilation);
+
+    QImage* displayOutImg=new QImage;
+    *displayOutImg=conditionDilation->scaled(raw_width,raw_height,Qt::KeepAspectRatio);
+    int hist_x=raw_x+raw_width+margin;int hist_y=raw_y;int hist_width=450;int hist_height=450;
+    ui->histInfo->setGeometry(hist_x,hist_y+hist_height,hist_width,100);
+    ui->histInfo->setText("Conditional dilation: SE ("+QString::number(seWidth)+","+QString::number(seHeight)+")");
+    label1->setPixmap(QPixmap::fromImage(*displayOutImg));
+    label1->setGeometry(hist_x,hist_y,hist_width,hist_height);
+
+    ui->th1ImgInfo->setVisible(false);
+    label2->setVisible(false);
+    ui->th2ImgInfo->setVisible(false);
+    label3->setVisible(false);
+    ui->histInfo->setVisible(true);
+    label1->setVisible(true);
+}
+void MainWindow::conditionalDilation(QImage *outImage){
+    for(int i=0;i<img->width();i++){
+        for(int j=0;j<img->height();j++){
+            int gray=qGray(img->pixel(i,j));
+            if (gray>0 && gray!=255){
+                QRgb newPixel=qRgb(255,255,255);
+                outImage->setPixel(i,j,newPixel);
+                img->setPixel(i,j,newPixel);
+            }
+        }
+    }
+    QImage* tmp=new QImage(img->width(),img->height(),QImage::Format_RGB32);
+    int cnter=0;
+    while(!judgeTwoImgsTheSame(tmp,outImage)){
+        if (cnter!=0){
+            copyImage(tmp,outImage);
+        }
+        dilation(outImage,tmp);
+        unionTwoImgs(img,tmp);
+        cnter+=1;
+    }
+    for(int i=0;i<img->width();i++){
+        for(int j=0;j<img->height();j++){
+            int gray=qGray(outImage->pixel(i,j));
+            if (gray!=255){
+                QRgb newPixel=qRgb(0,0,0);
+                outImage->setPixel(i,j,newPixel);
+            }else{
+                QRgb newPixel=qRgb(255,255,255);
+                outImage->setPixel(i,j,newPixel);
+            }
+        }
+    }
+
+}
+bool MainWindow::judgeTwoImgsTheSame(QImage *img1, QImage *img2){
+    for(int i=0;i<img1->width();i++){
+        for(int j=0;j<img1->height();j++){
+            int gray1=qGray(img1->pixel(i,j));
+            int gray2=qGray(img2->pixel(i,j));
+            if (gray1!=gray2){return false;}
+        }
+    }
+    return true;
+}
+void MainWindow::unionTwoImgs(QImage *img1, QImage *img2){
+    for(int i=0;i<img1->width();i++){
+        for(int j=0;j<img1->height();j++){
+            int gray1=qGray(img1->pixel(i,j));
+            int gray2=qGray(img2->pixel(i,j));
+            if(gray1>0 && gray2>0){
+                int tmp=gray2;
+                if(gray2>gray1){
+                    tmp=gray1;
+                }
+                QRgb newPixel=qRgb(tmp,tmp,tmp);
+                img2->setPixel(i,j,newPixel);
+            }else{
+                QRgb newPixel=qRgb(0,0,0);
+                img2->setPixel(i,j,newPixel);
+            }
+        }
+    }
+}
+void MainWindow::processEdgeDetetion(){
+    seHeight=seHeightEdit->text().toInt();
+    seWidth=seWidthEdit->text().toInt();
+    seRadius=seRadiusEdit->text().toInt();
+    if(seHeight==0 && seWidth==0 && seRadius==0){
+        seHeight=3;seWidth=3;seRadius=0;
+    }
+    if(seHeight<=3)seHeight=3;
+    if(seWidth<=3)seWidth=3;
+    QImage* standardEdgeImg=new QImage(img->width(),img->height(),QImage::Format_RGB32);
+    QImage* externalEdgeImg=new QImage(img->width(),img->height(),QImage::Format_RGB32);
+    QImage* internalEdgeImg=new QImage(img->width(),img->height(),QImage::Format_RGB32);
+    standardEdge(standardEdgeImg);
+    externalEdge(externalEdgeImg);
+    internalEdge(internalEdgeImg);
+
+
+    QImage* displayOutImg=new QImage;
+    *displayOutImg=standardEdgeImg->scaled(raw_width,raw_height,Qt::KeepAspectRatio);
+    int hist_x=raw_x+raw_width+margin;int hist_y=raw_y;int hist_width=450;int hist_height=450;
+    ui->histInfo->setGeometry(hist_x,hist_y+hist_height,hist_width,100);
+    ui->histInfo->setText("Standard edge/gradient: SE ("+QString::number(seWidth)+","+QString::number(seHeight)+")");
+    label1->setPixmap(QPixmap::fromImage(*displayOutImg));
+    label1->setGeometry(hist_x,hist_y,hist_width,hist_height);
+
+    QImage* displayOutImg2=new QImage;
+    *displayOutImg2=externalEdgeImg->scaled(raw_width,raw_height,Qt::KeepAspectRatio);
+    int th1_x=raw_x;int th1_y=raw_y+raw_height+10+100+margin;int th1_width=450;int th1_height=450;
+    ui->th1ImgInfo->setGeometry(th1_x,th1_y+th1_height,th1_width,100);
+    ui->th1ImgInfo->setText("External edge/gradient: SE ("+QString::number(seWidth)+","+QString::number(seHeight)+")");
+    label2->setPixmap(QPixmap::fromImage(*displayOutImg2));
+    label2->setGeometry(th1_x,th1_y,th1_width,th1_height);
+
+    QImage* displayOutImg3=new QImage;
+    *displayOutImg3=internalEdgeImg->scaled(raw_width,raw_height,Qt::KeepAspectRatio);
+    int th2_x=raw_x+raw_width+margin;int th2_y=raw_y+raw_height+10+100+margin;int th2_width=450;int th2_height=450;
+    ui->th2ImgInfo->setGeometry(th2_x,th2_y+th2_height,th2_width,100);
+    ui->th2ImgInfo->setText("Internal edge/gradient: SE ("+QString::number(seWidth)+","+QString::number(seHeight)+")");
+    label3->setPixmap(QPixmap::fromImage(*displayOutImg3));
+    label3->setGeometry(th2_x,th2_y,th2_width,th2_height);
+
+    ui->th1ImgInfo->setVisible(true);
+    label2->setVisible(true);
+    ui->th2ImgInfo->setVisible(true);
+    label3->setVisible(true);
+    ui->histInfo->setVisible(true);
+    label1->setVisible(true);
+}
+void MainWindow::standardEdge(QImage *outImage){
+    QImage *dilatedImage=new QImage(img->width(),img->height(),QImage::Format_RGB32);
+    dilation(img,dilatedImage);
+    QImage *erosionedImage=new QImage(img->width(),img->height(),QImage::Format_RGB32);
+    ersion(img,erosionedImage);
+    for(int i=0;i<outImage->width();i++){
+        for(int j=0;j<outImage->height();j++){
+            int dilatedGray=qGray(dilatedImage->pixel(i,j));
+            int erosedGray=qGray(erosionedImage->pixel(i,j));
+            int edge=dilatedGray-erosedGray;
+            QRgb newPixel=qRgb(edge,edge,edge);
+            outImage->setPixel(i,j,newPixel);
+        }
+    }
+}
+void MainWindow::internalEdge(QImage *outImage){
+    QImage *erosionedImage=new QImage(img->width(),img->height(),QImage::Format_RGB32);
+    ersion(img,erosionedImage);
+    for(int i=0;i<outImage->width();i++){
+        for(int j=0;j<outImage->height();j++){
+            int gray=qGray(img->pixel(i,j));
+            int erosedGray=qGray(erosionedImage->pixel(i,j));
+            int edge=gray-erosedGray;
+            QRgb newPixel=qRgb(edge,edge,edge);
+            outImage->setPixel(i,j,newPixel);
+        }
+    }
+}
+void MainWindow::externalEdge(QImage *outImage){
+    QImage *dilatedImage=new QImage(img->width(),img->height(),QImage::Format_RGB32);
+    dilation(img,dilatedImage);
+    for(int i=0;i<outImage->width();i++){
+        for(int j=0;j<outImage->height();j++){
+            int dilatedGray=qGray(dilatedImage->pixel(i,j));
+            int gray=qGray(img->pixel(i,j));
+            int edge=dilatedGray-gray;
+            QRgb newPixel=qRgb(edge,edge,edge);
+            outImage->setPixel(i,j,newPixel);
+        }
+    }
 }
 void MainWindow::switchProject4(){
     img=new QImage;
@@ -370,6 +650,8 @@ void MainWindow::processSkeleton(){
     label2->setVisible(true);
     ui->th2ImgInfo->setVisible(true);
     label3->setVisible(true);
+    ui->histInfo->setVisible(true);
+    label1->setVisible(true);
 }
 void MainWindow::processDistanceTransform(){
     seHeight=seHeightEdit->text().toInt();
@@ -396,6 +678,8 @@ void MainWindow::processDistanceTransform(){
     label2->setVisible(false);
     ui->th2ImgInfo->setVisible(false);
     label3->setVisible(false);
+    ui->histInfo->setVisible(true);
+    label1->setVisible(true);
 
 }
 void MainWindow::processErosionAndDilation(){
@@ -688,8 +972,8 @@ void MainWindow::project1VisibleSetting(){
     openAndCloseOperator->setVisible(false);
     seWidthEdit->setVisible(false);
     seHeightEdit->setVisible(false);
-    distanceTransform->setVisible(false);
-    skeleton->setVisible(false);
+    distanceTransformBtn->setVisible(false);
+    skeletonBtn->setVisible(false);
      seRadiusEdit->setVisible(false);
 
     ui->th1ImgInfo->setVisible(true);
@@ -697,6 +981,9 @@ void MainWindow::project1VisibleSetting(){
     label2->setVisible(true);
 
     label3->setVisible(false);
+    edgeDetectionBtn->setVisible(false);
+    conditionDilationBtn->setVisible(false);
+    reconstructionBtn->setVisible(false);
 }
 void MainWindow::project2VisibleSetting(){
     ui->project1_btn->setEnabled(true);
@@ -722,8 +1009,8 @@ void MainWindow::project2VisibleSetting(){
     openAndCloseOperator->setVisible(false);
     seWidthEdit->setVisible(false);
     seHeightEdit->setVisible(false);
-    distanceTransform->setVisible(false);
-    skeleton->setVisible(false);
+    distanceTransformBtn->setVisible(false);
+    skeletonBtn->setVisible(false);
      seRadiusEdit->setVisible(false);
 
     ui->th1ImgInfo->setVisible(true);
@@ -731,6 +1018,9 @@ void MainWindow::project2VisibleSetting(){
     label2->setVisible(true);
 
     label3->setVisible(false);
+    edgeDetectionBtn->setVisible(false);
+    conditionDilationBtn->setVisible(false);
+    reconstructionBtn->setVisible(false);
 
 }
 void MainWindow::project3VisibleSetting(){
@@ -757,14 +1047,17 @@ void MainWindow::project3VisibleSetting(){
    openAndCloseOperator->setVisible(true);
    seWidthEdit->setVisible(true);
    seHeightEdit->setVisible(true);
-   distanceTransform->setVisible(false);
-   skeleton->setVisible(false);
+   distanceTransformBtn->setVisible(false);
+   skeletonBtn->setVisible(false);
     seRadiusEdit->setVisible(true);
 
    ui->th1ImgInfo->setVisible(true);
    ui->th2ImgInfo->setVisible(false);
    label2->setVisible(true);
    label3->setVisible(false);
+   edgeDetectionBtn->setVisible(false);
+   conditionDilationBtn->setVisible(false);
+   reconstructionBtn->setVisible(false);
 
 }
 void MainWindow::project4VisibleSetting(){
@@ -792,13 +1085,16 @@ void MainWindow::project4VisibleSetting(){
    seWidthEdit->setVisible(true);
    seHeightEdit->setVisible(true);
     seRadiusEdit->setVisible(true);
-   distanceTransform->setVisible(true);
-   skeleton->setVisible(true);
+   distanceTransformBtn->setVisible(true);
+   skeletonBtn->setVisible(true);
 
    ui->th1ImgInfo->setVisible(false);
    ui->th2ImgInfo->setVisible(false);
    label2->setVisible(false);
    label3->setVisible(false);
+   edgeDetectionBtn->setVisible(true);
+   conditionDilationBtn->setVisible(true);
+   reconstructionBtn->setVisible(true);
 
 }
 void MainWindow::showConvolutedImage(float filterPixels[3][3],bool normalized){
@@ -890,7 +1186,14 @@ void MainWindow::openFileDialog4(){
         }
         showRawImg(img);
 
-        processDistanceTransform();
+//        processDistanceTransform();
+        ui->th1ImgInfo->setVisible(false);
+        ui->th2ImgInfo->setVisible(false);
+        label2->setVisible(false);
+        label3->setVisible(false);
+        ui->histInfo->setVisible(false);
+        label1->setVisible(false);
+
     }
 }
 void MainWindow::openFileDialog3(){
